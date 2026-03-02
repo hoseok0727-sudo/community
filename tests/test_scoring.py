@@ -37,3 +37,25 @@ def test_compute_topic_score_trend_up(now_utc):
     score, trend = compute_topic_score(posts, window_hours=24, now=now_utc)
     assert 0 <= score <= 1
     assert trend == "up"
+
+
+def test_compute_topic_score_handles_naive_datetime():
+    naive_now = datetime(2026, 3, 2, 12, 0)
+    posts = [
+        Post(
+            gallery_id=1,
+            external_id="n1",
+            url="https://example.com/n1",
+            title="naive",
+            content="naive",
+            author="u",
+            published_at=datetime(2026, 3, 2, 10, 0),
+            view_count=10,
+            upvote_count=1,
+            comment_count=1,
+            raw_metadata={},
+        )
+    ]
+    score, trend = compute_topic_score(posts, window_hours=24, now=naive_now)
+    assert 0 <= score <= 1
+    assert trend in {"up", "down", "stable"}

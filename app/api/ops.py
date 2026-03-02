@@ -26,16 +26,24 @@ def run_collect(
     limit: int | None = Query(default=None, ge=10, le=500),
     db: Session = Depends(get_db),
 ) -> list[CollectRunResult]:
+    def to_schema(result) -> CollectRunResult:
+        return CollectRunResult(
+            gallery_id=result.gallery_id,
+            inserted_count=result.inserted_count,
+            updated_count=result.updated_count,
+            fetched_count=result.fetched_count,
+        )
+
     fetch_limit = limit or settings.default_fetch_limit
     if gallery_id is None:
         results = collect_enabled_galleries(db=db, registry=registry, limit=fetch_limit)
-        return [CollectRunResult(**result.__dict__) for result in results]
+        return [to_schema(result) for result in results]
 
     gallery = db.get(Gallery, gallery_id)
     if gallery is None:
         raise HTTPException(status_code=404, detail="Gallery not found")
     result = collect_gallery_posts(db=db, gallery=gallery, registry=registry, limit=fetch_limit)
-    return [CollectRunResult(**result.__dict__)]
+    return [to_schema(result)]
 
 
 @router.post("/topics/rebuild", dependencies=[Depends(get_admin_guard)])
