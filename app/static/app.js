@@ -1,7 +1,6 @@
 const state = {
   galleries: [],
-  topics: [],
-  selectedTopicId: null,
+  briefing: null,
 };
 
 const elements = {
@@ -17,11 +16,11 @@ const elements = {
   windowHours: document.getElementById("windowHours"),
   fetchLimit: document.getElementById("fetchLimit"),
   opsResult: document.getElementById("opsResult"),
+  briefingBtn: document.getElementById("briefingBtn"),
+  briefWindowFilter: document.getElementById("briefWindowFilter"),
+  briefLimitFilter: document.getElementById("briefLimitFilter"),
   topicGrid: document.getElementById("topicGrid"),
   topicPosts: document.getElementById("topicPosts"),
-  topicGalleryFilter: document.getElementById("topicGalleryFilter"),
-  topicWindowFilter: document.getElementById("topicWindowFilter"),
-  topicLimitFilter: document.getElementById("topicLimitFilter"),
   trendGalleryFilter: document.getElementById("trendGalleryFilter"),
   trendHours: document.getElementById("trendHours"),
   trendBtn: document.getElementById("trendBtn"),
@@ -34,50 +33,47 @@ function getApiKey() {
   return elements.apiKeyInput.value.trim();
 }
 
-function buildHeaders(includeJson = false, includeApiKey = false) {
-  const headers = {};
-  if (includeJson) {
-    headers["Content-Type"] = "application/json";
-  }
+function selectedBoardIds() {
+  return [...document.querySelectorAll('input[name="boardSelection"]:checked')].map((node) =>
+    parseInt(node.value, 10),
+  );
+}
+
+function headers(includeJson = false, includeApiKey = false) {
+  const result = {};
+  if (includeJson) result["Content-Type"] = "application/json";
   if (includeApiKey) {
-    const apiKey = getApiKey();
-    if (apiKey) {
-      headers["X-API-Key"] = apiKey;
-    }
+    const key = getApiKey();
+    if (key) result["X-API-Key"] = key;
   }
-  return headers;
+  return result;
 }
 
 async function apiGet(path) {
-  const res = await fetch(path);
-  if (!res.ok) {
-    throw new Error(`GET ${path} failed: ${res.status}`);
-  }
-  return res.json();
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`GET ${path} failed: ${response.status}`);
+  return response.json();
 }
 
-async function apiPost(path, payload = null, includeApiKey = false) {
-  const opts = {
+async function apiPost(path, body = null, includeApiKey = false) {
+  const response = await fetch(path, {
     method: "POST",
-    headers: buildHeaders(Boolean(payload), includeApiKey),
-  };
-  if (payload) {
-    opts.body = JSON.stringify(payload);
+    headers: headers(Boolean(body), includeApiKey),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`POST ${path} failed: ${response.status} ${text}`);
   }
-  const res = await fetch(path, opts);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`POST ${path} failed: ${res.status} ${text}`);
-  }
-  return res.json();
+  return response.json();
 }
 
-function setOpsMessage(text, isError = false) {
+function message(text, isError = false) {
   elements.opsResult.textContent = text;
   elements.opsResult.style.color = isError ? "#7f1d1d" : "";
 }
 
-function renderHealth(ok) {
+function setHealth(ok) {
   elements.healthBadge.className = `badge ${ok ? "ok" : "fail"}`;
   elements.healthBadge.textContent = ok ? "API Healthy" : "API Down";
 }
@@ -94,8 +90,10 @@ function renderSourceOptions(sources) {
 
 function renderGalleries() {
   elements.galleriesList.innerHTML = "";
+  elements.trendGalleryFilter.innerHTML = '<option value="">Select</option>';
+
   if (!state.galleries.length) {
-    elements.galleriesList.innerHTML = '<p class="trend-empty">등록된 소스가 없습니다.</p>';
+    elements.galleriesList.innerHTML = '<p class="trend-empty">No boards registered yet.</p>';
     return;
   }
 
@@ -103,66 +101,57 @@ function renderGalleries() {
     const item = document.createElement("article");
     item.className = "list-item";
     item.innerHTML = `
-      <h5>${gallery.display_name}</h5>
-      <p>${gallery.source_type} / ${gallery.source_key}</p>
-      <p>ID: ${gallery.id}</p>
+      <label class="board-row">
+        <input type="checkbox" name="boardSelection" value="${gallery.id}" checked />
+        <div>
+          <p class="board-title">${gallery.display_name}</p>
+          <p class="board-meta">${gallery.source_type} / ${gallery.source_key}</p>
+        </div>
+      </label>
     `;
     elements.galleriesList.appendChild(item);
-  }
 
-  const topicFilter = elements.topicGalleryFilter;
-  const trendFilter = elements.trendGalleryFilter;
-  topicFilter.innerHTML = '<option value="">All</option>';
-  trendFilter.innerHTML = '<option value="">Select</option>';
-  for (const gallery of state.galleries) {
-    const optionA = document.createElement("option");
-    optionA.value = String(gallery.id);
-    optionA.textContent = gallery.display_name;
-    topicFilter.appendChild(optionA);
-
-    const optionB = document.createElement("option");
-    optionB.value = String(gallery.id);
-    optionB.textContent = gallery.display_name;
-    trendFilter.appendChild(optionB);
+    const option = document.createElement("option");
+    option.value = String(gallery.id);
+    option.textContent = gallery.display_name;
+    elements.trendGalleryFilter.appendChild(option);
   }
 }
 
-function trendPillClass(trend) {
+function trendClass(trend) {
   if (trend === "up") return "up";
   if (trend === "down") return "down";
   return "stable";
 }
 
-function renderTopics() {
+function renderTopics(topics) {
   elements.topicGrid.innerHTML = "";
-  if (!state.topics.length) {
-    elements.topicGrid.innerHTML = '<p class="trend-empty">토픽이 없습니다. Collect/Rebuild를 먼저 실행해보세요.</p>';
+  if (!topics.length) {
+    elements.topicGrid.innerHTML = '<p class="trend-empty">No topics. Run collect, then generate briefing.</p>';
     return;
   }
 
-  for (const topic of state.topics) {
+  for (const topic of topics) {
     const node = elements.topicCardTemplate.content.firstElementChild.cloneNode(true);
     node.querySelector("h4").textContent = topic.title;
+
     const pill = node.querySelector(".trend-pill");
-    pill.classList.add(trendPillClass(topic.trend));
+    pill.classList.add(trendClass(topic.trend));
     pill.textContent = topic.trend.toUpperCase();
+
     node.querySelector(".topic-summary").textContent = topic.summary;
     node.querySelector(".topic-meta").textContent =
-      `score ${topic.score.toFixed(3)} | confidence ${topic.confidence.toFixed(2)} | gallery ${topic.gallery_id}`;
+      `score ${topic.score.toFixed(3)} | confidence ${topic.confidence.toFixed(2)} | boards ${topic.gallery_names.join(", ")}`;
 
     const keywords = node.querySelector(".topic-keywords");
     for (const word of topic.keywords || []) {
-      const k = document.createElement("span");
-      k.className = "keyword";
-      k.textContent = word;
-      keywords.appendChild(k);
+      const tag = document.createElement("span");
+      tag.className = "keyword";
+      tag.textContent = word;
+      keywords.appendChild(tag);
     }
 
-    node.addEventListener("click", () => {
-      state.selectedTopicId = topic.id;
-      loadTopicPosts(topic.id);
-    });
-
+    node.addEventListener("click", () => renderTopicPosts(topic.posts || []));
     elements.topicGrid.appendChild(node);
   }
 }
@@ -170,15 +159,16 @@ function renderTopics() {
 function renderTopicPosts(posts) {
   elements.topicPosts.innerHTML = "";
   if (!posts.length) {
-    elements.topicPosts.innerHTML = '<p class="trend-empty">대표 글이 없습니다.</p>';
+    elements.topicPosts.innerHTML = '<p class="trend-empty">No evidence posts for this topic.</p>';
     return;
   }
+
   for (const post of posts) {
     const item = document.createElement("article");
     item.className = "list-item";
     item.innerHTML = `
-      <a class="post-link" href="${post.url}" target="_blank" rel="noreferrer">${post.rank}. ${post.title}</a>
-      <p>${new Date(post.published_at).toLocaleString()}</p>
+      <a class="post-link" href="${post.url}" target="_blank" rel="noreferrer">${post.title}</a>
+      <p>${post.gallery_name} | ${new Date(post.published_at).toLocaleString()}</p>
       <p>up ${post.upvote_count} / comments ${post.comment_count} / views ${post.view_count}</p>
     `;
     elements.topicPosts.appendChild(item);
@@ -187,7 +177,7 @@ function renderTopicPosts(posts) {
 
 function renderTrendChart(items) {
   if (!items.length) {
-    elements.trendChart.innerHTML = '<p class="trend-empty">트렌드 데이터가 없습니다.</p>';
+    elements.trendChart.innerHTML = '<p class="trend-empty">No trend data in this window.</p>';
     return;
   }
   const width = 600;
@@ -207,16 +197,23 @@ function renderTrendChart(items) {
         `<circle cx="${p.x}" cy="${p.y}" r="2.8" fill="#005a70"><title>${p.label}: ${p.count}</title></circle>`,
     )
     .join("");
-  const last = points[points.length - 1];
 
   elements.trendChart.innerHTML = `
     <svg viewBox="0 0 ${width} ${height}" class="sparkline" preserveAspectRatio="none">
       <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="rgba(23,34,45,0.25)" />
       <path d="${path}" fill="none" stroke="#005a70" stroke-width="2.5" stroke-linecap="round" />
       ${circles}
-      <text x="${last.x - 6}" y="${last.y - 9}" font-size="10" fill="#005a70">${last.count}</text>
     </svg>
   `;
+}
+
+async function loadHealth() {
+  try {
+    await apiGet("/health");
+    setHealth(true);
+  } catch (_) {
+    setHealth(false);
+  }
 }
 
 async function loadSources() {
@@ -229,26 +226,39 @@ async function loadGalleries() {
   renderGalleries();
 }
 
-async function loadTopics() {
-  const q = new URLSearchParams();
-  if (elements.topicGalleryFilter.value) {
-    q.set("gallery_id", elements.topicGalleryFilter.value);
+async function loadBriefing() {
+  const ids = selectedBoardIds();
+  if (!ids.length) {
+    message("Select at least one board to generate briefing.", true);
+    return;
   }
-  q.set("window_hours", elements.topicWindowFilter.value || "24");
-  q.set("limit", elements.topicLimitFilter.value || "50");
-  state.topics = await apiGet(`/topics?${q.toString()}`);
-  renderTopics();
+
+  const query = new URLSearchParams();
+  for (const id of ids) query.append("gallery_ids", String(id));
+  query.set("window_hours", elements.briefWindowFilter.value || "24");
+  query.set("limit", elements.briefLimitFilter.value || "20");
+
+  state.briefing = await apiGet(`/briefing?${query.toString()}`);
+  renderTopics(state.briefing.topics || []);
+  renderTopicPosts([]);
 }
 
-async function loadTopicPosts(topicId) {
-  const posts = await apiGet(`/topic/${topicId}/posts`);
-  renderTopicPosts(posts);
+async function runCollect() {
+  const limit = parseInt(elements.fetchLimit.value || "100", 10);
+  const result = await apiPost(`/ops/collect?limit=${limit}`, null, true);
+  message(`Collect done: ${JSON.stringify(result)}`);
+}
+
+async function runRebuild() {
+  const windowHours = parseInt(elements.windowHours.value || "24", 10);
+  const result = await apiPost(`/ops/topics/rebuild?window_hours=${windowHours}`, null, true);
+  message(`Rebuild done: run_id ${result.run_id}`);
 }
 
 async function loadTrend() {
   const galleryId = elements.trendGalleryFilter.value;
   if (!galleryId) {
-    elements.trendChart.innerHTML = '<p class="trend-empty">먼저 Gallery를 선택해주세요.</p>';
+    elements.trendChart.innerHTML = '<p class="trend-empty">Choose one board first.</p>';
     return;
   }
   const hours = elements.trendHours.value || "24";
@@ -259,21 +269,8 @@ async function loadTrend() {
 async function refreshAll() {
   try {
     await Promise.all([loadHealth(), loadSources(), loadGalleries()]);
-    await loadTopics();
-    if (state.selectedTopicId) {
-      await loadTopicPosts(state.selectedTopicId);
-    }
-  } catch (err) {
-    setOpsMessage(err.message, true);
-  }
-}
-
-async function loadHealth() {
-  try {
-    await apiGet("/health");
-    renderHealth(true);
-  } catch (_) {
-    renderHealth(false);
+  } catch (error) {
+    message(error.message, true);
   }
 }
 
@@ -289,46 +286,54 @@ function bindEvents() {
       });
       elements.sourceKey.value = "";
       elements.displayName.value = "";
-      setOpsMessage("Source added.");
       await loadGalleries();
-    } catch (err) {
-      setOpsMessage(err.message, true);
+      message("Board added.");
+    } catch (error) {
+      message(error.message, true);
     }
   });
 
   elements.collectBtn.addEventListener("click", async () => {
     try {
-      const limit = parseInt(elements.fetchLimit.value || "100", 10);
-      const result = await apiPost(`/ops/collect?limit=${limit}`, null, true);
-      setOpsMessage(`Collect complete: ${JSON.stringify(result)}`);
-      await loadTopics();
-    } catch (err) {
-      setOpsMessage(err.message, true);
+      await runCollect();
+    } catch (error) {
+      message(error.message, true);
     }
   });
 
   elements.rebuildBtn.addEventListener("click", async () => {
     try {
-      const hours = parseInt(elements.windowHours.value || "24", 10);
-      const result = await apiPost(`/ops/topics/rebuild?window_hours=${hours}`, null, true);
-      setOpsMessage(`Rebuild complete: run_id ${result.run_id}`);
-      await loadTopics();
-    } catch (err) {
-      setOpsMessage(err.message, true);
+      await runRebuild();
+    } catch (error) {
+      message(error.message, true);
     }
   });
 
-  elements.topicGalleryFilter.addEventListener("change", loadTopics);
-  elements.topicWindowFilter.addEventListener("change", loadTopics);
-  elements.topicLimitFilter.addEventListener("change", loadTopics);
-  elements.trendBtn.addEventListener("click", loadTrend);
+  elements.briefingBtn.addEventListener("click", async () => {
+    try {
+      await loadBriefing();
+    } catch (error) {
+      message(error.message, true);
+    }
+  });
+
+  elements.trendBtn.addEventListener("click", async () => {
+    try {
+      await loadTrend();
+    } catch (error) {
+      message(error.message, true);
+    }
+  });
+
   elements.refreshAllBtn.addEventListener("click", refreshAll);
 }
 
 async function init() {
   bindEvents();
   await refreshAll();
-  elements.trendChart.innerHTML = '<p class="trend-empty">Gallery를 고르고 Load를 눌러주세요.</p>';
+  elements.topicGrid.innerHTML =
+    '<p class="trend-empty">Select boards and click "Generate Briefing".</p>';
+  elements.trendChart.innerHTML = '<p class="trend-empty">Choose a board and load trend.</p>';
 }
 
 init();

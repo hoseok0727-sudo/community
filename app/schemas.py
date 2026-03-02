@@ -54,3 +54,40 @@ class CollectRunResult(BaseModel):
     inserted_count: int
     updated_count: int
     fetched_count: int
+
+
+class BriefingGalleryOut(BaseModel):
+    id: int
+    display_name: str
+
+
+class BriefingPostOut(BaseModel):
+    post_id: int
+    gallery_id: int
+    gallery_name: str
+    title: str
+    url: str
+    published_at: datetime
+    view_count: int
+    upvote_count: int
+    comment_count: int
+
+
+class BriefingTopicOut(BaseModel):
+    rank: int
+    title: str
+    summary: str
+    score: float
+    confidence: float
+    trend: str
+    keywords: list[str]
+    gallery_ids: list[int]
+    gallery_names: list[str]
+    posts: list[BriefingPostOut]
+
+
+class BriefingOut(BaseModel):
+    window_hours: int
+    selected_galleries: list[BriefingGalleryOut]
+    topic_count: int
+    topics: list[BriefingTopicOut]

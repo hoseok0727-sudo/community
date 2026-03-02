@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Post, Topic, TopicPost, TopicRun
-from app.schemas import TopicOut, TopicPostOut
+from app.schemas import BriefingOut, TopicOut, TopicPostOut
+from app.services.briefing import build_briefing
 
 router = APIRouter(tags=["topics"])
 
@@ -65,6 +66,23 @@ def list_topic_posts(topic_id: int, db: Session = Depends(get_db)) -> list[Topic
             )
         )
     return result
+
+
+@router.get("/briefing", response_model=BriefingOut)
+def selected_board_briefing(
+    gallery_ids: list[int] = Query(default=[]),
+    window_hours: int = Query(default=24, ge=1, le=168),
+    limit: int = Query(default=20, ge=1, le=100),
+    per_gallery_cap: int = Query(default=120, ge=10, le=500),
+    db: Session = Depends(get_db),
+) -> BriefingOut:
+    return build_briefing(
+        db=db,
+        gallery_ids=gallery_ids,
+        window_hours=window_hours,
+        limit=limit,
+        per_gallery_cap=per_gallery_cap,
+    )
 
 
 @router.get("/topics/trend")

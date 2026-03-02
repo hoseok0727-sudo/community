@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,14 +10,13 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
     <div class="bg-layer"></div>
     <header class="topbar">
       <div class="brand">
-        <p class="eyebrow">Real-Time Community Intelligence</p>
+        <p class="eyebrow">Multi-Board Topic Summarizer</p>
         <h1>Community Briefing</h1>
       </div>
       <div class="topbar-actions">
@@ -29,8 +28,8 @@
     <main class="layout">
       <aside class="panel left-panel">
         <section>
-          <h2>Source Setup</h2>
-          <p class="muted">추적할 커뮤니티를 등록하고 수집 실행 버튼을 눌러주세요.</p>
+          <h2>Board Setup</h2>
+          <p class="muted">Add boards (DC gallery, Reddit subreddit, etc.) to track.</p>
 
           <form id="galleryForm" class="stacked-form">
             <label>
@@ -38,14 +37,14 @@
               <select id="sourceType" required></select>
             </label>
             <label>
-              Source Key
-              <input id="sourceKey" placeholder="예: programming / python / ai" required />
+              Board Key
+              <input id="sourceKey" placeholder="programming / python / ai" required />
             </label>
             <label>
-              Display Name
-              <input id="displayName" placeholder="화면에 보일 이름" required />
+              Board Name
+              <input id="displayName" placeholder="Display name in dashboard" required />
             </label>
-            <button type="submit" class="btn btn-main">Add Source</button>
+            <button type="submit" class="btn btn-main">Add Board</button>
           </form>
         </section>
 
@@ -53,10 +52,10 @@
           <h3>Operations</h3>
           <label>
             Admin API Key (optional)
-            <input id="apiKeyInput" placeholder="없으면 비워두기" />
+            <input id="apiKeyInput" placeholder="only if ADMIN_API_KEY is set" />
           </label>
           <div class="ops-grid">
-            <button id="collectBtn" class="btn btn-accent">Run Collect</button>
+            <button id="collectBtn" class="btn btn-accent">Collect Posts</button>
             <button id="rebuildBtn" class="btn btn-main">Rebuild Topics</button>
           </div>
           <div class="ops-inline">
@@ -73,29 +72,25 @@
         </section>
 
         <section class="card">
-          <h3>Tracked Sources</h3>
+          <h3>Select Boards</h3>
+          <p class="muted">Choose multiple boards, then generate one combined briefing.</p>
           <div id="galleriesList" class="list"></div>
         </section>
       </aside>
 
       <section class="panel center-panel">
         <div class="panel-head">
-          <h2>Hot Topics</h2>
+          <h2>Selected Board Briefing</h2>
           <div class="inline-filters">
             <label>
-              Gallery
-              <select id="topicGalleryFilter">
-                <option value="">All</option>
-              </select>
-            </label>
-            <label>
               Window
-              <input id="topicWindowFilter" type="number" min="1" max="168" value="24" />
+              <input id="briefWindowFilter" type="number" min="1" max="168" value="24" />
             </label>
             <label>
-              Limit
-              <input id="topicLimitFilter" type="number" min="1" max="200" value="50" />
+              Topic Limit
+              <input id="briefLimitFilter" type="number" min="1" max="100" value="20" />
             </label>
+            <button id="briefingBtn" class="btn btn-main">Generate Briefing</button>
           </div>
         </div>
         <div id="topicGrid" class="topic-grid"></div>
@@ -104,15 +99,14 @@
       <aside class="panel right-panel">
         <section class="card">
           <h3>Evidence Posts</h3>
-          <p class="muted">토픽 카드를 클릭하면 대표 근거 글이 나옵니다.</p>
+          <p class="muted">Click a briefing topic to inspect representative posts.</p>
           <div id="topicPosts" class="list"></div>
         </section>
         <section class="card">
-          <h3>Trend (Hourly)</h3>
-          <p class="muted">선택한 갤러리의 최근 시간대별 게시물 수</p>
+          <h3>Board Trend (Hourly)</h3>
           <div class="trend-toolbar">
             <label>
-              Gallery
+              Board
               <select id="trendGalleryFilter"></select>
             </label>
             <label>

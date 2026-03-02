@@ -12,7 +12,8 @@ Current supported sources:
 - Deduplicates posts by `(gallery_id, external_id)`.
 - Builds topic clusters with TF-IDF + cosine similarity.
 - Scores topics by engagement, recency, and velocity.
-- Exposes API endpoints for galleries, topics, representative posts, and hourly trend buckets.
+- Lets users select multiple boards and generates one combined briefing for those boards.
+- Exposes API endpoints for board registration, briefing, and hourly trend buckets.
 - Serves a web dashboard at `/` for end-to-end testing without separate frontend setup.
 
 ## Stack
@@ -95,6 +96,7 @@ If `ADMIN_API_KEY` is set in `.env`, send `X-API-Key` header to `/ops/*`.
 ## Read API Data
 ```bash
 curl "http://127.0.0.1:8000/galleries"
+curl "http://127.0.0.1:8000/briefing?gallery_ids=1&gallery_ids=2&window_hours=24&limit=20"
 curl "http://127.0.0.1:8000/topics?gallery_id=1&window_hours=24"
 curl "http://127.0.0.1:8000/topic/1/posts"
 curl "http://127.0.0.1:8000/topics/trend?gallery_id=1&hours=24"
@@ -102,10 +104,11 @@ curl "http://127.0.0.1:8000/topics/trend?gallery_id=1&hours=24"
 
 ## Dashboard Test Flow
 1. Open `http://127.0.0.1:8000/`.
-2. Add 1-3 sources in `Source Setup`.
-3. Click `Run Collect`, then `Rebuild Topics`.
-4. Check `Hot Topics`, click a topic card, and verify `Evidence Posts`.
-5. Choose a gallery in `Trend (Hourly)` and click `Load`.
+2. Add boards in `Board Setup`.
+3. Click `Collect Posts` to fetch new posts.
+4. Select boards in `Select Boards`.
+5. Click `Generate Briefing` to get one summarized topic list for selected boards.
+6. Click a topic card and verify `Evidence Posts`.
 
 ## Quality Gate
 ```bash
