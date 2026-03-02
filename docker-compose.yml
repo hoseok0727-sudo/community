@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    container_name: community_briefing_db
+    environment:
+      POSTGRES_DB: community
+      POSTGRES_USER: community
+      POSTGRES_PASSWORD: community
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U community -d community"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: community_briefing_api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: Community Briefing API
+      ENV: dev
+      DATABASE_URL: postgresql+psycopg://community:community@db:5432/community
+      COLLECT_INTERVAL_MINUTES: 10
+      TOPIC_WINDOW_HOURS: 24
+      DEFAULT_FETCH_LIMIT: 100
+      HTTP_TIMEOUT_SECONDS: 12
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
+
