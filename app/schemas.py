@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GalleryCreate(BaseModel):
@@ -12,6 +12,8 @@ class GalleryCreate(BaseModel):
 
 
 class GalleryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     source_type: str
     source_key: str
@@ -20,11 +22,10 @@ class GalleryOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class TopicOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     gallery_id: int
     title: str
@@ -34,9 +35,6 @@ class TopicOut(BaseModel):
     trend: str
     keywords: list[str]
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class TopicPostOut(BaseModel):
@@ -56,4 +54,3 @@ class CollectRunResult(BaseModel):
     inserted_count: int
     updated_count: int
     fetched_count: int
-

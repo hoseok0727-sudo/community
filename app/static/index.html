@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Community Briefing Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='80'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="bg-layer"></div>
+    <header class="topbar">
+      <div class="brand">
+        <p class="eyebrow">Real-Time Community Intelligence</p>
+        <h1>Community Briefing</h1>
+      </div>
+      <div class="topbar-actions">
+        <span id="healthBadge" class="badge neutral">Checking...</span>
+        <button id="refreshAllBtn" class="btn btn-ghost">Refresh</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel left-panel">
+        <section>
+          <h2>Source Setup</h2>
+          <p class="muted">추적할 커뮤니티를 등록하고 수집 실행 버튼을 눌러주세요.</p>
+
+          <form id="galleryForm" class="stacked-form">
+            <label>
+              Source
+              <select id="sourceType" required></select>
+            </label>
+            <label>
+              Source Key
+              <input id="sourceKey" placeholder="예: programming / python / ai" required />
+            </label>
+            <label>
+              Display Name
+              <input id="displayName" placeholder="화면에 보일 이름" required />
+            </label>
+            <button type="submit" class="btn btn-main">Add Source</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h3>Operations</h3>
+          <label>
+            Admin API Key (optional)
+            <input id="apiKeyInput" placeholder="없으면 비워두기" />
+          </label>
+          <div class="ops-grid">
+            <button id="collectBtn" class="btn btn-accent">Run Collect</button>
+            <button id="rebuildBtn" class="btn btn-main">Rebuild Topics</button>
+          </div>
+          <div class="ops-inline">
+            <label>
+              Window (hours)
+              <input id="windowHours" type="number" min="1" max="168" value="24" />
+            </label>
+            <label>
+              Fetch Limit
+              <input id="fetchLimit" type="number" min="10" max="500" value="100" />
+            </label>
+          </div>
+          <p id="opsResult" class="muted"></p>
+        </section>
+
+        <section class="card">
+          <h3>Tracked Sources</h3>
+          <div id="galleriesList" class="list"></div>
+        </section>
+      </aside>
+
+      <section class="panel center-panel">
+        <div class="panel-head">
+          <h2>Hot Topics</h2>
+          <div class="inline-filters">
+            <label>
+              Gallery
+              <select id="topicGalleryFilter">
+                <option value="">All</option>
+              </select>
+            </label>
+            <label>
+              Window
+              <input id="topicWindowFilter" type="number" min="1" max="168" value="24" />
+            </label>
+            <label>
+              Limit
+              <input id="topicLimitFilter" type="number" min="1" max="200" value="50" />
+            </label>
+          </div>
+        </div>
+        <div id="topicGrid" class="topic-grid"></div>
+      </section>
+
+      <aside class="panel right-panel">
+        <section class="card">
+          <h3>Evidence Posts</h3>
+          <p class="muted">토픽 카드를 클릭하면 대표 근거 글이 나옵니다.</p>
+          <div id="topicPosts" class="list"></div>
+        </section>
+        <section class="card">
+          <h3>Trend (Hourly)</h3>
+          <p class="muted">선택한 갤러리의 최근 시간대별 게시물 수</p>
+          <div class="trend-toolbar">
+            <label>
+              Gallery
+              <select id="trendGalleryFilter"></select>
+            </label>
+            <label>
+              Hours
+              <input id="trendHours" type="number" min="1" max="168" value="24" />
+            </label>
+            <button id="trendBtn" class="btn btn-ghost">Load</button>
+          </div>
+          <div id="trendChart" class="trend-chart"></div>
+        </section>
+      </aside>
+    </main>
+
+    <template id="topicCardTemplate">
+      <article class="topic-card">
+        <div class="topic-head">
+          <h4></h4>
+          <span class="trend-pill"></span>
+        </div>
+        <p class="topic-summary"></p>
+        <div class="topic-meta"></div>
+        <div class="topic-keywords"></div>
+      </article>
+    </template>
+
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>
+

@@ -13,6 +13,7 @@ Current supported sources:
 - Builds topic clusters with TF-IDF + cosine similarity.
 - Scores topics by engagement, recency, and velocity.
 - Exposes API endpoints for galleries, topics, representative posts, and hourly trend buckets.
+- Serves a web dashboard at `/` for end-to-end testing without separate frontend setup.
 
 ## Stack
 - FastAPI
@@ -57,6 +58,11 @@ Health check:
 curl http://127.0.0.1:8000/health
 ```
 
+Dashboard:
+```text
+http://127.0.0.1:8000/
+```
+
 ## Docker Run (PostgreSQL)
 ```bash
 docker compose up --build
@@ -94,6 +100,13 @@ curl "http://127.0.0.1:8000/topic/1/posts"
 curl "http://127.0.0.1:8000/topics/trend?gallery_id=1&hours=24"
 ```
 
+## Dashboard Test Flow
+1. Open `http://127.0.0.1:8000/`.
+2. Add 1-3 sources in `Source Setup`.
+3. Click `Run Collect`, then `Rebuild Topics`.
+4. Check `Hot Topics`, click a topic card, and verify `Evidence Posts`.
+5. Choose a gallery in `Trend (Hourly)` and click `Load`.
+
 ## Quality Gate
 ```bash
 python -m ruff check .
@@ -105,4 +118,3 @@ python -m pytest
 - Keep strict rate limits and retry/backoff settings.
 - Add distributed workers + queue when traffic grows.
 - Add alerting/metrics and migration tooling (Alembic) before high-scale launch.
-
